@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# Temporales de Office
+~$*.docx
+~$*.xlsx
+
+# Entorno local
+.env
+.env.local
