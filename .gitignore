@@ -17,3 +17,7 @@ node_modules/
 # Entorno local
 .env
 .env.local
+
+# Clon de referencia de terceros (AWS Samples) — se obtiene aparte:
+#   git clone https://github.com/aws-samples/sample-aidlc-discovery.git
+sample-aidlc-discovery/

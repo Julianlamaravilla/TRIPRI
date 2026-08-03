@@ -46,8 +46,15 @@ TRIPRI/
 │
 ├── context-discovery/         # material de partida aportado por el cliente
 ├── technical-research/        # investigación de stack e infraestructura, con costos verificados
-├── sample-aidlc-discovery/    # herramienta de Discovery de referencia (terceros)
+├── sample-aidlc-discovery/    # referencia de terceros — NO versionada, ver abajo
 └── .claude/                   # skills y protocolos del proceso de Discovery
+```
+
+`sample-aidlc-discovery/` es un clon de [aws-samples/sample-aidlc-discovery](https://github.com/aws-samples/sample-aidlc-discovery)
+y **no se versiona aquí**. Si lo necesitas:
+
+```bash
+git clone https://github.com/aws-samples/sample-aidlc-discovery.git
 ```
 
 ---
