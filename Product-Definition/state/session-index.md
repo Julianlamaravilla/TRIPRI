@@ -1,17 +1,28 @@
 # Discovery Session Index
 - Created: 2026-07-28T00:31:15Z
-- Last Updated: 2026-08-02T06:00:00Z
+- Last Updated: 2026-08-08T00:00:00Z
 - Project Type: Greenfield  (new codebase; TryController is third-party — data migration only, no inherited code)
 - Depth: Quick (technical role) · Full (business role, already run via client questionnaire)
 - Mode: sequential  (business first, technical now)
 - Interaction: business = batch (.docx round-trip) · technical = conversational
-- Business: in-progress  (**v3 returned answered 2026-08-02 — 52 of 55 questions**. Processed into
-  `interview/business/client-answers-v3-2026-08-02.md`. **11 contradictions closed**, **7 new opened**
-  (`CX-32`…`CX-38`), 5 new open questions. ⚠️ **`vision-document.md` STILL DOES NOT EXIST** — the
-  business role has three rounds of answers and no artefact. Outstanding: V-21, V-22, V-23 unanswered;
-  the **cash-box Excel promised in C-57 and V-25 has now failed to arrive twice**; V-26/27/28 deferred
-  to a call the client offered for "hoy domingo en la noche".)
-- Technical: **complete — 23/23, APPROVED 2026-08-02**  (Quick pass 13 + extension 10:
+- Business: **complete with open questions** (D-04 + D-05 ingested 2026-08-08; vision-document.md rendered; 83,3 %)  (**v3 returned answered 2026-08-02 — 52 of 55 questions**. **D-05 added**: client clarifications from call 2026-08-08, 11 points recorded. Processed into
+  `interview/business/vision-answers-history.md`. **11 contradictions closed**, **7 new opened + 3 re-opened by D-05**
+  (`CX-32`…`CX-42`), final count **42 contradictions**, **15 open**. **`vision-document.md` fully rendered** — all sections complete except Success Metrics (unmeasurable). Outstanding: `B-10`…`B-15` require client response; the **cash-box Excel promised in C-57 and V-25 has not arrived**; IA scope (`CX-30`) and permission model (`CX-40`) resolved by D-05 but require confirmation.)
+- Technical: **complete — 28/29, APPROVED 2026-08-02; scope extension #2 run 2026-08-07 (5 of 6)**
+  🆕 **Extension #2, 2026-08-07 — user asked for a short session on what was missing and delegated the
+  selection; ended it after 5 of 6.** Answered: **T30** (encrypted SQLite → `op-sqlite` + SQLCipher,
+  the blocking project-setup requirement since T18) · **T31** (Android 10+ / iOS 13+ → **TLS 1.3
+  mandatory**, replacing T18's stated assumption) · **T9-b** (the five undeclared second-order
+  libraries) · **T32** (environments → production-only + local Compose, **$0**) · **T33** (ISO 27001
+  **aligned, not certified**). ⬜ **T34 (performance target, `OQ-N-44`) NOT answered** — session
+  closed by the user before it.
+  **Closed by this extension**: `CX-31` (P0), `CX-38`, `OQ-N-46`, `OQ-T-3`, `OQ-T-21`, and the last
+  two of the three assumptions the 2026-08-02 approval carried (TLS, encrypted-SQLite library).
+  **The third — the four unconfirmed glossary terms (`sale`, `client`/`customer`, `partner`,
+  `collector`) — remains open** and must be closed before writing code.
+  🔴 **Opened**: `CX-39` — T25's slow gate has no environment to run in.
+  *(Original approval line follows.)*
+- Technical (2026-08-02): **complete — 23/23, APPROVED**  (Quick pass 13 + extension 10:
   T4, T11, T16, T18, T21, T24, T26–T29. Answered as bonuses: **T12**, **`OQ-T-24`** and **T16-C**.
   Out of scope by depth: T6, T9, T15, T19, T23. Interaction `conversational`; pre-fill policy `none`
   with **seven approved exceptions** — T10, T14, T17, T20, T11, T24, T26–T29.
@@ -24,7 +35,7 @@
   (phone models never declared), the **four unconfirmed glossary terms** (`sale`, `client`/`customer`,
   `partner`, `collector`), and the **still-undecided encrypted-SQLite library**, which T18 turned into
   a blocking project-setup requirement.)
-- Join: blocked  (Business in-progress: questionnaire v3 issued, not yet returned. Technical in-progress: scope extended to 23 questions, not approved.)
+- Join: ✅ **ready** (2026-08-16). Both roles complete: Business = vision-document.md rendered with D-05 + open-questions consolidated; Technical = 28/29 APPROVED with extensions. Three deliverables ready: vision-document.md, technical-environment.md, open-questions.md. Six P0 questions pending client response (`B-10`…`B-15`).
 
 ## Confirmed Decisions
 Answers already closed by the user. They take precedence over `context-discovery/` material.
@@ -65,12 +76,51 @@ Full record: `interview/business/vision-answers-history.md`; summary in `open-qu
   real one was found at `~/Downloads/cuestionario-cliente-v3.docx` and copied in as
   `respuestas-cuestionario-cliente-v3-REAL.docx`.
 
+- **D-05** (2026-08-08) — **Client clarifications from a call, 11 points.** Provenance: **call notes
+  relayed by the user, not a returned questionnaire** — the literal record is the note, not the
+  client's words.
+  **Closes**: 🔴 **`CX-30` (P0)** — *"AI is a future phase, F2"*, so `D-03` and `C-108` stand and the
+  second-hand report that opened it is refuted (`OQ-T-15` back to P2; the seven AI functional rows
+  stop being blocked — **one of the three clusters dragging functional coverage down is released**).
+  ✅ **`CX-26` fully** — the missing re-authorisation flow is described end to end: the app generates
+  a **PIN showing the device model**, the admin approves, the system issues the password, and the
+  admin binds/unbinds. 🔑 **It matches the design T17 proposed on 2026-08-01 without changing it** —
+  the translation is now **validated by the source**, not merely accepted by the team.
+  Reconfirms `C-111` (pilot starts on one route) — **the best news in the batch for `CX-27`**.
+  **Opens**: 🔴 **`CX-40` (P0)** — the role model stops being three fixed roles: a **fourth level**
+  (secondary admins) plus **per-resource assignable permissions administered by the client**. That is
+  an authorisation module, not a role list, and it **grows scope right after `CX-27` established it
+  does not fit** — this time from an authoritative source. 🔴 **`CX-42` (P0)** — the **first price in
+  the whole Discovery** (35 BRL, basic plan = phase 1) **does not cover the ~$43–47/tenant/month
+  cost in any reading except weekly-and-without-WhatsApp** — and that reading means **phase 1 ships
+  without both anti-fraud controls** (`C-99`), reaching by pricing the same hole `D-03` reached via
+  `CX-33`. **`CX-41`** — the terms-and-conditions requirement is accepted and is also an LGPD need,
+  but **the client's stated motive (avoiding association with criminal activity) is not achieved by
+  T&C**; needs Brazilian legal advice, alongside `C-93`/`C-94`/`C-95`/`C-98`.
+  **New**: `OQ-F-105` (T&C), `OQ-F-106` (permission model), `OQ-F-107` (device enrolment).
+  `OQ-F-99` (P0) **rises in urgency**: unbinding is now an ordinary admin action, not an exception.
+  **Six questions back to the client**: `B-10`…`B-15`. Full analysis:
+  `interview/business/vision-answers-history.md` §D-05.
+
 ## Open Questions
 - Last Compiled: 2026-07-28T00:52:00Z  (pre-interview gap analysis, user-requested)
 - Last Updated: 2026-08-02T01:30:00Z  (technical T4 + T11: CX-27, CX-29, CX-30 opened; CX-28 opened and closed; OQ-T-14 closed, OQ-T-13 near-closed, OQ-T-15 reactivated to P0, OQ-N-45 opened)
-- Contradictions `CX`: 38 rows — **20 closed · 1 partial · 17 open → 53,9 %**
-  - **CX-31 opened 2026-08-02 during T21 — P0.** **ISO 27001 A.5.3 requires segregation of duties;
-    T25 made "code review approved" a blocking merge gate; `CX-27` says the team is one person.**
+- Contradictions `CX`: 42 rows — **26 closed · 1 partial · 15 open → 63,1 %**  🔧 *(recounted
+  row by row 2026-08-08; the previous 24/1/17 was an undercount)*  (`CX-31`, `CX-38`
+  closed 2026-08-07 by T33; **`CX-30` and `CX-26` closed 2026-08-08 by `D-05`**; **`CX-40`, `CX-41`,
+  `CX-42` opened by `D-05`**)  ⬇ (`CX-39` opened
+  2026-08-07 during T32 — **T25's slow gate (E2E + performance + DAST, deploy-blocking) has no
+  environment to run in** now that T32 chose production-only. Same shape as `CX-31`: a gate that
+  cannot be met as written. Mitigation agreed in T32 covers E2E and DAST but **not performance**.)
+  - **CX-31 — ✅ CLOSED 2026-08-07 by T33: "aligned with ISO 27001", not certified.** Decided by
+    `CX-38` (`V-53`: the client does not foresee anyone demanding the certificate), so certifying is
+    a months-long organisational project with no buyer — and **a design guide admits documented
+    exceptions where an audited certification does not**. A.5.3 declared **not met**, in writing,
+    with four compensating controls; the two that matter are **client approval for money-module
+    changes** (the only one producing real segregation, since the approver is another person) and
+    **never deploying from the laptop** (without it the immutable deploy log records nothing).
+    *(Original text: ISO 27001 A.5.3 requires segregation of duties;
+    T25 made "code review approved" a blocking merge gate; `CX-27` says the team is one person.)*
     There is no reviewer. The same person writes, approves, deploys and operates the cash-box code —
     what the control exists to prevent, in an anti-fraud product. T25's gate cannot be met as written.
   - **CX-27 opened 2026-08-02 during technical T4** — the team is **one junior developer**; the
@@ -92,19 +142,37 @@ Full record: `interview/business/vision-answers-history.md`; summary in `open-qu
   - **Correction to `technical-research/infraestructura-aws.md` §7.4** (user-reported 2026-08-02):
     **Claude IS available in Bedrock `sa-east-1`**. The document's finding that "AI inside AWS
     without breaking data residency does not exist in São Paulo" no longer holds.
-- Business `OQ-B`: 18 rows — **9 closed · 6 partial · 3 open → 66,7 %**
-- Functional `OQ-F`: 104 rows — **34 closed · 26 partial · 44 open → 45,2 %**
+- Business `OQ-B`: 18 rows — **13 closed · 4 partial · 1 open → 83,3 %**  ⬆ (D-04, 2026-08-07)
+- Functional `OQ-F`: 107 rows — **34 closed · 27 partial · 46 open → 44,4 %**  (`OQ-F-105` T&C,
+  `OQ-F-106` permission model, `OQ-F-107` device enrolment — all opened by `D-05`)
 - Non-functional `OQ-N`: 48 rows — **23 closed · 14 partial · 11 open → 62,5 %**
-- Technical `OQ-T`: 26 rows — **21 closed · 1 partial · 4 open → 82,7 %**
-- **TOTAL: 234 rows — 107 closed · 48 partial · 79 open → COVERAGE 56,0 % (measured)**
-- Next Index: {contradiction: 39, business: 19, functional: 105, non-functional: 49, technical: 27}
+- Technical `OQ-T`: 26 rows — **21 closed · 2 partial · 3 open → 84,6 %**  ⬆ (`OQ-T-3` and `OQ-T-21`
+  closed 2026-08-07). **All three remaining are blocked outside the technical role** — `OQ-T-15`
+  (LLM provider → `CX-30`), `OQ-T-25` (TryController export → `CX-20`), `OQ-T-26` (SaaS gateway).
+- **TOTAL: 241 rows — 117 closed · 48 partial · 76 open → COVERAGE 58,5 % (recomputed 2026-08-08)**
+  🔧 **Arithmetic correction**: both this line and `open-questions.md` declared **244 rows when the
+  blocks sum to 241** — totals had been incremented by hand instead of recomputed. **Rule from now
+  on: the TOTAL is recomputed from the blocks, never adjusted by hand.**
+  ⚠️ This line uses `OQ-B` = 13/4/1 (post-`D-04`); `open-questions.md` still has the pre-`D-04`
+  9/6/3, which is why the two land on **58,5 %** and **57,3 %**. **The gap is 1,2 points and is
+  entirely `OQ-B`** — the other four blocks agree exactly. Only a row-by-row re-read of `OQ-B`
+  closes it, at the join.
+- Next Index: {contradiction: 43, business: 19, functional: 108, non-functional: 49, technical: 27}
+  Client questions pending from `D-05`: `B-10`…`B-15` (see `open-questions.md` §2.bis)
+- ⚠️ **Known divergence with `open-questions.md`**, to resolve at the join: the per-block rows agree,
+  the TOTAL line does not (112/46 here vs 107/48 there) — 5 rows `D-04` moved on 2026-08-07 were
+  applied in only one of the two files. Not reconciled during the technical interview by design.
 - ⚠️ The previously reported *~72 % global* was **never measured** and is superseded by the 56,0 % above.
 - ✅ **REGISTER RECONCILED ROW BY ROW — 2026-08-02.** The measurement caveat that stood here is
   resolved: **all 234 rows now carry a status marker with its supporting evidence** (`C-xx` from v2,
   `V-xx` from v3, `T-xx` from the technical interview, or `D-0x`). Coverage is now a **measurement**,
   not a judgement.
-- ⚠️ **`vision-document.md` DOES NOT EXIST.** One of the three Discovery deliverables has never been
-  rendered. The business role has answers (D-01, D-02, client-answers-2026-08-01.md) but no artefact.
+- ✅ **`vision-document.md` RENDERED 2026-08-07.** All three Discovery deliverables now exist.
+  ⚠️ **One section could not be completed**: §Success Metrics. The success measure has been asked
+  three times (`C-07` → `V-22` → `B-04`) and never produced a number. The document states this
+  explicitly rather than inventing metrics — the `common/content-validation.md` check
+  *"success metrics are measurable"* **fails by design**, and the completion gate is presented with
+  that failure declared.
 - Top blockers: CX-16 (no WhatsApp Business API — both anti-fraud controls depend on it),
   CX-11 (country/currency/language never declared), CX-15 (app-first vs web-first),
   CX-12 + CX-13 (cash box cannot balance as currently specified), CX-20 (TryController has no export),
