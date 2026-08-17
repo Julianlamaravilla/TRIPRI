@@ -20,6 +20,126 @@ Single-writer file for the Technical role. Updated after every validated answer.
   is closed. Approved together with three stated assumptions the user did not override: TLS 1.2
   minimum, the four unconfirmed glossary terms, and the undecided encrypted-SQLite library.
 
+## Scope extension #2 — 2026-08-07 (6 questions, AI-selected at the user's request)
+
+The user asked for a **short** technical session "based on what is missing" and delegated the
+selection, as in extension #1. The role stays **APPROVED**; this extension does not reopen any
+answered question — it closes residuals that the approval explicitly carried as stated assumptions,
+plus the technical `OQ-T` rows still marked open.
+
+Selection rule applied: **only items the user can decide without the client.** Everything blocked on
+the client (`OQ-T-15` LLM provider → `CX-30`, `OQ-T-25` TryController export → `CX-20`, `OQ-T-26`
+SaaS payment gateway, the retention number `N` in `OQ-T-13`) is deliberately excluded — asking them
+here would produce a guess, not a constraint.
+
+- [x] **T30** — Encrypted on-device SQLite library → **A · `op-sqlite` + SQLCipher**, whole DB
+      encrypted, key in `expo-secure-store`. ⚠️ AI-proposed / user-approved (**eighth approved
+      exception** to the no-pre-fill policy). 🔴 **Closes the blocking project-setup requirement T18
+      opened** and the `OQ-T-17` residual. Deciding argument: **T17 already committed to "local
+      unlock decrypts the local SQLite"** — B cannot deliver that sentence (there is no *the* SQLite,
+      only fields), C has no decryption at all. B rejected because it **works only while everyone
+      remembers**, and forgetting is silent PII in clear on a phone with no test to catch it —
+      unacceptable with `CX-27` + AI-generated code; **kept as plan B**. C rejected: FBE/Data
+      Protection protect a phone that is *off*, which is never a field phone's state. D rejected as
+      an alternative (breaks `C-65` + the T14 command queue) but **adopted as a complement** — purge
+      uploaded photos and day data at cash-box close. Rule 2 objection was already paid: **Expo Go is
+      impossible here anyway** (device key pair, QR reader, precise GPS, FCM all force a dev build).
+      ⚠️ **Setup verification, before the first migration**: `op-sqlite`'s official config plugin
+      must be current for the pinned Expo SDK, and SQLCipher's licensing terms confirmed — if either
+      fails, fall back to B with a written closed list of sensitive fields.
+      **Three binding traps recorded**: (1) 🔴 the **PIN unlocks the key, it does not derive it** —
+      a 4-digit PIN (`V-18`) is 10.000 combinations and breaks offline in seconds; use a random
+      256-bit device-generated key in Keystore/Keychain; (2) exclude DB and key from OS backups
+      (`allowBackup=false`, iCloud exclusion, `WHEN_UNLOCKED_THIS_DEVICE_ONLY`); (3) **deleting the
+      key IS the C-71 remote wipe** — write it down before someone builds a "real" one.
+- [x] **T31** — Minimum supported OS versions → **A · Android 10+ / iOS 13+, TLS 1.3 mandatory.**
+      **Supersedes the T18 stated assumption** ("TLS 1.2 min, 1.3 preferred") — the second of the
+      three assumptions the 2026-08-02 approval carried is now an answer. Supporting fact already on
+      record but not surfaced when asking: **`V-36` + `C-70` mean the device park is procured, not
+      BYOD** ("el celular asignado por la empresa"), so an Android 10 (2019) floor excludes nothing a
+      subscriber can buy today; the risk is confined to reusing existing old handsets.
+      **Infrastructure consequences for T29 / `infra/`**: ALB must move to a **TLS 1.3-only security
+      policy** (`ELBSecurityPolicy-TLS13-1-3-*`) — without it the decision does not exist; ⚠️
+      **CloudFront cannot go 1.3-only**, so the SPA static bundle's effective floor stays TLS 1.2 —
+      harmless (public bundle, no data) but **must be written down so nobody reads it as a breach or
+      tries to "fix" it**. Expo's own rising floor (rule 5) wins if it ever passes this one.
+- [x] **T9-b** — Second-order libraries → **`httpx` · `python-json-logger` · stdlib dates+money ·
+      Recharts · Zustand.** Closes the gap T9 left open twice by depth decision, and with it the
+      "AI-DLC will reach for its defaults there" caveat.
+      **Three binding rules ride with the choices**: 🔴 **a `logging.Filter` injecting `tenant_id`,
+      `request_id`, `device_id` from `contextvars`** — `python-json-logger` gives JSON output but no
+      context binding, so without the filter attribution depends on the developer remembering
+      `extra={...}`, the same failure mode that decided T30; plus **never log amounts, ID documents
+      or borrower data** (LGPD/T21 — the ledger is the record, not CloudWatch). 🔴 **Zustand holds UI
+      and session state only** — the offline queue and business data live in the T30 encrypted
+      SQLite, and the `persist` middleware is **not** used (its default backend is AsyncStorage,
+      banned by T10). ⚠️ **Pin a Recharts version compatible with React 19** and verify at install.
+      Why stdlib is safe for dates/money **here specifically**: all financial maths lives in the
+      Python functional core (T22, pure functions + injected clock), so the client receives computed
+      values. 🔑 `America/Sao_Paulo` — **Brazil abolished DST in 2019**, so there are no transitions
+      to break the daily instalment counter; **that property is lost if the product expands to the
+      `C-02` countries** and date arithmetic must be re-examined then.
+- [x] **T32** — Environments and test data (`OQ-T-21`) → **(a) A · production only + local Docker
+      Compose** · **(b) A + B · synthetic generator *and* anonymised production copy.** Cost impact
+      **$0** — infra stays at ~$210/mo; does not move `OQ-N-45`, which still depends on the
+      never-declared budget `OQ-N-40`.
+      🔴 **Raises `CX-39`: T25's slow gate has no environment to run in.** E2E + performance + DAST
+      block the deploy, but Playwright, Maestro, k6 and ZAP now have only local Docker Compose or
+      production — and **ZAP against production is not an option**. Mitigation agreed inside the
+      decision: **the slow gate runs against the full local stack** (Compose: backend + PostgreSQL +
+      seeded DB; Maestro on a dev build against `localhost`). ⚠️ **What it cannot give is a valid
+      performance number** — no ALB, no NAT, no `sa-east-1` RDS latency. It does catch **algorithmic
+      regressions** (N+1, missing indexes, a query that grows with tenant count), which is where a
+      one-person team's performance bugs actually live. **This constrains T34**: the target must be
+      measurable in that environment or it is measurable nowhere.
+      **Part (b) ordering + LGPD trap**: 🔴 there is **no production to copy yet** (greenfield) — day
+      1 is synthetic only; B is a future capability. 🔴 A copy keeping amounts, dates and route shape
+      is **re-identifiable** across ~2.000 clients — that is pseudonymisation, still personal data
+      under LGPD art. 13. **Binding rule: never `pg_dump` production to a local machine**; the
+      transformation runs inside AWS. **Recommended path honouring both**: pull **statistical
+      parameters** from production into the synthetic generator — same realism, no personal datum
+      ever moves, and it scales to 10× for load tests where a real copy is fixed at real size.
+- [x] **T33** — ISO 27001 scope + the code-review gate → **B · "aligned with ISO 27001", not
+      certified.** ✅ **Closes `CX-31` (P0)**, ✅ **closes `CX-38`**, ✅ **closes `OQ-N-46`** — the
+      aligned-vs-certified distinction T21 never made. Decided by `CX-38`, which did not exist when
+      `CX-31` opened: **`V-53` — the client does not foresee anyone demanding the certificate**, so
+      certifying is a months-long organisational project with no buyer. The practical difference is
+      exactly what made `CX-31` unresolvable: **a standard used as a design guide admits documented
+      exceptions; an audited certification does not.** A.5.3 (segregation of duties) is declared
+      **not met**, in writing, in `technical-environment.md` §Compliance.
+      **Four binding compensating controls**: (1) **T25's gate is rewritten** — "code review
+      approved" stops meaning human approval (impossible with one person) and becomes **mandatory
+      static analysis (Ruff + Bandit, already in T24) + a checklist ticked on the PR**; the gate
+      still blocks, only who satisfies it changes. (2) 🔴 **Client approval for changes to money
+      modules** (`payments/`, `cash_box/`, `ledger`) — **the only control producing real segregation**,
+      since the approver is a different person; it is what keeps B from being paperwork. (3) 🔴
+      **Never deploy from the laptop** — CI only, by tag. **This one holds up the other three**: if
+      the developer can deploy from their machine the immutable deployment log records nothing and
+      control 2 can be bypassed without trace. (4) **Audited, non-standing production access** —
+      break-glass IAM role, CloudTrail, **alarm on use**. LGPD unaffected (obligatory by law).
+- [ ] **T34** — Performance target (`OQ-N-44`, P1) → ⬜ **NOT ANSWERED. Session closed by the user
+      before it.** `OQ-N-44` stays open and T22's performance test stays non-executable.
+      Preserved for the next session: at ~1.200 payments/day and **0,05 req/s**, a throughput target
+      measures nothing — **the real risk is ledger growth**. T14 made it append-only and defined
+      balance as the **sum of movements**: ~1,1 M entries in 3 years, degrading **continuously and
+      invisibly** until a Saturday's cash box will not close. T14 already has the mitigation (a
+      **precomputed summary table** refreshed by a Procrastinate periodic task) but **nobody has set
+      the threshold that would trigger it**. Options put on the table: (a) latency over aged volume
+      (seed ~1,5 M entries; `p95` on sync-batch upload, cash-box close, dashboard summary) · (b)
+      algorithmic guardrails only · (c) both · (d) defer until production exists. Proposed thresholds
+      for (a)/(c): **p95 500 ms** / **300 ms** / **1 s**.
+
+**Not reached (bonus)**: **T23** (coverage number, P2) and the **four unconfirmed glossary terms**
+(`sale`, `client`/`customer`, `partner`, `collector` — `OQ-T-24` residual). The glossary terms remain
+a **precondition for writing code**.
+
+Pre-fill policy unchanged: **none**. Explanation + recommendation only on explicit request.
+
+**Status of extension #2: 5 of 6 answered, closed by the user 2026-08-07.** The role's 2026-08-02
+approval is untouched — nothing answered was reopened. `technical-environment.md` re-rendered:
+§Project Technical Summary, §Preferred Frameworks, §Encryption, §Compliance, §Testing (new
+§Entornos y datos de prueba), §CI/CD Gates, §Open Questions and §Riesgos técnicos abiertos.
+
 ## Scope extension — 2026-08-02 (10 questions, AI-selected at the user's request)
 
 The user asked for a 10-question session and delegated the selection. Chosen from the 16 unanswered,

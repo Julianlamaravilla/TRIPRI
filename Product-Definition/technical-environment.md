@@ -10,9 +10,14 @@ cliente no posee: no hay código heredado que condicione, solo una **migración 
 > `interview/technical/tech-env-answers-history.md`.
 >
 > **Procedencia.** La entrevista se condujo con política de **sin pre-relleno**: no se heredó nada
-> de `technical-research/recomendacion-tecnica.md`. Cuatro respuestas fueron **propuestas por la IA
-> y aprobadas por el usuario** a petición suya —T10, T14, T17 y T20— y están marcadas como tales.
-> La distinción importa: son recomendaciones aceptadas, no requisitos del negocio.
+> de `technical-research/recomendacion-tecnica.md`. Ocho respuestas fueron **propuestas por la IA
+> y aprobadas por el usuario** a petición suya —T10, T14, T17, T20, T24, T26–T29 y **T30**— y están
+> marcadas como tales. La distinción importa: son recomendaciones aceptadas, no requisitos del
+> negocio.
+>
+> **Sesiones.** Pasada rápida 2026-08-01 (13 preguntas) · ampliación 2026-08-02 (10, rol
+> **aprobado**) · **ampliación #2 el 2026-08-07 (5 respondidas: T30, T31, T9-b, T32, T33)**, sobre
+> los residuos que la aprobación se había llevado como supuestos declarados.
 
 ---
 
@@ -26,9 +31,18 @@ cliente no posee: no hay código heredado que condicione, solo una **migración 
   EKS descartado (complejidad operativa sin equipo que la sostenga), Lambda descartado (arranques en
   frío y límites de tiempo frente a sincronizaciones por lote), **App Runner descartado por no estar
   disponible en `sa-east-1`** — verificado por el usuario
-- **Team Size and Experience**: ⬜ **No declarado.** T4 quedó fuera del Quick pass. Sigue abierto como
-  `OQ-T-3` (**P0**) y es relevante: buena parte de las decisiones se justificaron en «dominio del
-  desarrollador», sin que el equipo esté descrito en ninguna parte
+- **Team Size and Experience** (T4, 2026-08-02): **una persona, perfil junior.** Fuerte en
+  **Python + FastAPI** y en **AWS**. **React solo web — sin experiencia móvil.** Sin experiencia
+  declarada en React Native, Expo, criptografía en dispositivo ni motores de sincronización.
+  **La misma persona opera producción.** → `CX-27` (**P0**): el alcance comprometido no cabe en el
+  equipo que existe, y **el riesgo se concentra íntegramente en la mitad móvil**, que es a la vez el
+  MVP (`D-03`) y la tecnología sin experiencia previa
+- **Versiones mínimas de sistema operativo** (T31, 2026-08-07): **Android 10+ / iOS 13+**, lo que
+  hace **TLS 1.3 obligatorio**. Sostenido por `V-36` + `C-70`: **el teléfono lo asigna la empresa**,
+  el parque se compra y no es BYOD. ⚠️ El mínimo de Expo sube solo cada año (regla 5); si algún día
+  supera a Android 10 / iOS 13, **manda el de Expo**
+- **Entornos** (T32, 2026-08-07): **solo producción** + desarrollo local con Docker Compose. Sin
+  staging. Incremento de coste $0 → ver §Entornos y datos de prueba
 - **Escala inicial declarada** (T3): **30–40 usuarios y ~1.200 clientes finales** ⇒ ~1.200 registros
   de pago al día, ~3 por minuto en pico. Dato aportado en la entrevista técnica que **no estaba en
   ningún material del cliente**; contrastar con `CX-19`
@@ -115,12 +129,40 @@ Python para el backend.
 
 ### Preferred Frameworks
 
-**No declarados.** T9 quedó fuera del Quick pass y el usuario **reconfirmó la exclusión** tras
-ofrecérsele la ampliación.
+**Declaradas el 2026-08-07 (T9-b).** T9 quedó fuera del Quick pass dos veces por decisión de
+profundidad; la ampliación #2 cerró los cinco huecos que quedaban, porque eran **cinco sitios donde
+AI-DLC iba a elegir sus propios valores por defecto, y de forma distinta en cada módulo**.
 
-**Consecuencia explícita**: las librerías de segundo orden —cliente HTTP más allá de `httpx`,
-logging estructurado, **gráficas**, gestión de estado local en móvil— **no están declaradas**.
-AI-DLC usará sus valores por defecto salvo que una fila de §Prohibited Libraries lo impida.
+| Hueco | Elección | Regla vinculante |
+|---|---|---|
+| Cliente HTTP del backend | **`httpx`** async | Cliente único para WhatsApp, Telegram, FCM y SES. **Timeout explícito siempre** — una llamada saliente colgada bloquea un worker de Procrastinate |
+| Logging estructurado | **`python-json-logger`** sobre `logging` estándar | 🔴 Ver mitigación obligatoria abajo |
+| Fechas y dinero | **stdlib**: `datetime` + `zoneinfo` + `Decimal` (Python); `Intl` nativo (cliente) | Ninguna librería de fechas nueva en cliente ni servidor |
+| Gráficas del tablero web (`C-83`) | **Recharts** | ⚠️ Fijar versión compatible con **React 19** y verificarlo al instalar |
+| Estado local del móvil | **Zustand** | 🔴 Ver frontera abajo |
+
+> 🔴 **Mitigación obligatoria del logging.** `python-json-logger` da salida JSON pero **no aporta
+> enlace de contexto**: cada línea la enriquece quien la escribe con `extra={...}`, y lo que depende
+> de recordar se olvida. **Se fija un `logging.Filter` que inyecta `tenant_id`, `request_id` y
+> `device_id` desde `contextvars` en toda línea.** Sin él, en un producto cuya razón de ser es la
+> auditoría (`C-99`) habría trazas imposibles de atribuir a un tenant.
+> **Segunda regla, de LGPD:** **jamás registrar importes, documentos de identidad ni datos del
+> prestatario en los logs.** El registro contable es el ledger, no CloudWatch.
+
+> 🔴 **Frontera de Zustand.** Guarda **estado de interfaz y de sesión, nada más**. La cola de
+> comandos offline y los datos de negocio viven en la **SQLite cifrada** (§Encryption), nunca en un
+> store en memoria. **No se usa el middleware `persist`**: su almacén por defecto es AsyncStorage,
+> **prohibido en §Prohibited Libraries**. Un pago que existe solo en un store se pierde cuando el
+> sistema operativo mata la app a media mañana — escenario obligatorio de prueba de T14.
+
+> **Por qué stdlib basta para fechas y dinero aquí** (y no bastaría en otro proyecto): toda la
+> matemática financiera vive en el **núcleo funcional de Python** (funciones puras, reloj
+> inyectado), así que el cliente recibe valores ya calculados. Encaja con `Decimal` frente a la
+> prohibición de `float`, y con **`amount` como cadena** en la API.
+> 🔑 La zona es `America/Sao_Paulo` y **Brasil abolió el horario de verano en 2019**: no hay
+> transiciones DST, lo que elimina una clase entera de errores del contador diario de cuotas y del
+> cierre de caja. **Esa propiedad se pierde si el producto se expande a los países de `C-02`**, y la
+> aritmética de fechas debe reexaminarse entonces.
 
 ### Prohibited Libraries
 
@@ -609,27 +651,78 @@ automática no la regala.
 | **RDS** | Cifrado con **KMS**. ⚠️ **Debe activarse al crear la instancia** — AWS no permite activarlo después sin recrearla y migrar. Paso irreversible del `terraform apply` inicial → debe estar en el fragmento canónico de T29 |
 | **Copias de seguridad y snapshots** | Cifrados; heredan la clave de la instancia. Se declara explícito |
 | **ECS ↔ RDS** | **`sslmode=require`** en la cadena de conexión. **No es automático**: sin esta opción el tráfico va en claro **dentro de la VPC**. Es lo que más se olvida al declarar "todo cifrado en tránsito" |
-| **TLS público** (ALB, CloudFront) | **Mínimo 1.2, preferido 1.3** |
+| **TLS público** (ALB) | **Solo 1.3** (T31, 2026-08-07) — política `ELBSecurityPolicy-TLS13-1-3-*`. **Sin cambiar la política, el ALB sigue aceptando 1.2 y la decisión no existe** |
+| **TLS público** (CloudFront) | ⚠️ **Suelo 1.2 — CloudFront no admite solo-1.3.** Su versión mínima más alta admite 1.2 junto a 1.3. Inofensivo (solo sirve el bundle estático de la SPA, público y sin datos) pero **queda escrito para que nadie lo lea como incumplimiento ni intente "arreglarlo"** |
 | **S3** | Cifrado. Fotos de identidad privadas, servidas por URL prefirmada (T11) |
-| **SQLite del dispositivo** | Cifrada — obligatoria. ⚠️ **Librería sin decidir**, ver abajo |
+| **SQLite del dispositivo** | Cifrada — obligatoria. **`op-sqlite` + SQLCipher**, base entera, clave en `expo-secure-store` (T30, 2026-08-07). Ver abajo |
 | **Clave privada del dispositivo** | Keychain / Keystore, sin salir nunca (T17) |
 | **Sesión web** | Cookie `httpOnly` + `Secure` + `SameSite`, nunca `localStorage` (T17) |
 
-> ⚠️ **TLS 1.2 como mínimo es una asunción declarada, no una respuesta del usuario.** No se
-> declararon los modelos de teléfono de los cobradores. **TLS 1.3 obligatorio exige Android 10+**;
-> con teléfonos de gama baja o antiguos podría dejar usuarios fuera, y el fallo se manifestaría como
-> *"no sincroniza"*, no como un error de TLS. Se sube a 1.3 obligatorio si se confirma el parque de
-> dispositivos.
+> ✅ **El supuesto sobre TLS quedó resuelto el 2026-08-07.** T18 había fijado *"1.2 mínimo"* como
+> **asunción declarada**, no como respuesta, porque no se conocían los modelos de teléfono. **T31 los
+> acotó** (Android 10+ / iOS 13+) apoyándose en un hecho ya registrado: `V-36` y `C-70` dicen que
+> **el teléfono lo asigna la empresa** — el parque se compra, no es BYOD. **TLS 1.3 pasa a ser
+> obligatorio en el ALB.**
 
-> 🔴 **La librería de SQLite cifrada sigue sin decidir, y T18 la vuelve bloqueante.**
-> `mobile-platform-constraints.md` regla 2 prefiere librerías del SDK de Expo (→ `expo-sqlite`), pero
-> **`expo-sqlite` no cifra**. La alternativa es `op-sqlite` + SQLCipher, fuera del SDK. Declarar
-> "todo cifrado en reposo" convierte esto en **requisito de arranque, no en preferencia**.
-> **Verificar antes de la primera línea de código móvil. No asumir que `expo-sqlite` cifra.**
+> ✅ **La librería de SQLite cifrada quedó decidida el 2026-08-07 (T30): `op-sqlite` + SQLCipher**,
+> base entera cifrada, clave en `expo-secure-store`. ⚠️ **Propuesta por la IA, aprobada por el
+> usuario.** El argumento que decidió: **T17 ya había comprometido** que *"el desbloqueo local (PIN o
+> biometría) descifra la SQLite local"* — y el cifrado por campo sobre `expo-sqlite` **no puede
+> cumplir esa frase**, porque no existe *la* SQLite que descifrar, solo campos sueltos. Se rechazó
+> además porque **funciona solo mientras todos se acuerden**: cada columna nueva sin cifrar es PII en
+> claro en un teléfono y **ninguna prueba lo detecta** — inaceptable con `CX-27` y código generado.
+> La objeción de la **regla 2** (preferir el SDK de Expo) **ya estaba pagada**: el par de claves de
+> dispositivo, el lector de QR, el GPS preciso y FCM **ya obligan a un *development build***, así que
+> Expo Go era imposible de todas formas.
+>
+> ⚠️ **Verificación obligatoria al montar el proyecto, antes de la primera migración**: que
+> `op-sqlite` publique **config plugin oficial vigente** para el SDK de Expo que se fije, y **bajo
+> qué condiciones de licencia expone SQLCipher**. Si cualquiera falla → plan B: `expo-sqlite` con
+> cifrado a nivel de aplicación y **lista cerrada de campos sensibles por escrito**.
+> `react-native-quick-sqlite` **no** es alternativa: está descontinuado, es el predecesor de
+> `op-sqlite`.
+>
+> **Tres trampas vinculantes que acompañan a la decisión:**
+> 1. 🔴 **El PIN no deriva la clave, la desbloquea.** Un PIN de 4 dígitos (`V-18`) son 10.000
+>    combinaciones: derivar de él la clave de la base la rompe fuera de línea en segundos. Correcto:
+>    **clave aleatoria de 256 bits generada en el dispositivo**, en Keystore/Keychain vía
+>    `expo-secure-store`; el PIN o la biometría **gobiernan el acceso a la clave**, no su contenido.
+> 2. **Excluir base y clave de las copias del sistema** — `allowBackup=false` (Android), exclusión de
+>    iCloud (iOS), elemento del llavero con `WHEN_UNLOCKED_THIS_DEVICE_ONLY`. Si no, la base cifrada
+>    y su clave salen del teléfono por la puerta de atrás.
+> 3. **Borrar la clave *es* el borrado remoto de `C-71`** — la base queda ilegible al instante sin
+>    que el teléfono coopere. Debe quedar escrito **antes** de que alguien construya un borrado
+>    "de verdad".
 
 **Cruce con T21:** al ser **A** el nivel máximo de la pregunta, si T21 resuelve LGPD el cifrado pasa
 de buena práctica a exigible **sin cambiar ninguna decisión**. La regla de validación del banco
 (T18 debe alinearse con T21) se cumple por construcción.
+
+> 🔴 **IMPACTO PENDIENTE DE `D-05` (2026-08-08) — `CX-40`, P0.** El cliente declaró que el
+> administrador principal *"asigna permisos sobre los recursos para los demás usuarios"* y **crea
+> administradores secundarios**. Eso convierte a T17 de **servicio de autenticación propio** en
+> servicio de **autenticación y autorización**, con permisos configurables **por tenant**.
+> Lo que ya está decidido **no se cae**: `tenant_id` sigue viniendo del token verificado y RLS sigue
+> siendo la frontera **entre** tenants. Lo que falta es la capa de autorización **dentro** de un
+> tenant, que RLS no cubre y hoy **no está diseñada ni presupuestada**.
+> **No implementar hasta que `B-13` decida** entre *roles fijos con excepciones puntuales* y *matriz
+> completa de permisos por recurso*: entre una y otra hay un `if` y un módulo entero, y `CX-27` sigue
+> diciendo que el equipo es una persona.
+
+> ✅ **`CX-26` cerrada por `D-05` — el flujo de alta de dispositivo queda especificado y coincide con
+> el diseño de T17 sin cambiarlo**: la app genera un **PIN que muestra el modelo del dispositivo**
+> (viable vía `expo-device`; es dato declarado por el aparato, **útil para que un humano lo
+> reconozca, no prueba criptográfica**), el **administrador aprueba** —el "evento de auditoría con
+> aprobación explícita" que T17 exigía—, y **el sistema genera la contraseña**, lo que además evita
+> contraseñas débiles elegidas por un usuario con poca soltura técnica (`C-106`). El administrador
+> **vincula y desvincula**; revocar = borrar la clave pública, con efecto inmediato **y** dejando
+> ilegible la SQLite local (T30). **Un solo usuario por móvil**: la vinculación es 1:1 estricta en
+> ambas direcciones (`C-37`, `C-70`).
+> ⚠️ **Sube la urgencia de `OQ-F-99` (P0)**: desvincular deja de ser excepcional y pasa a ser acción
+> ordinaria de administración, así que *"qué pasa con las operaciones sin sincronizar de un
+> dispositivo revocado"* pasa de caso raro a caso rutinario. Detalle operativo pendiente en
+> `OQ-F-107` — **el PIN debe caducar**: un código de enrolamiento sin vencimiento es una credencial
+> permanente.
 
 ### Input Validation
 
@@ -665,6 +758,30 @@ OpenAPI. Es especialmente crítico recibiendo lotes de operaciones desde ~40 dis
 ### Compliance
 
 **ISO 27001 + LGPD** (T21, 2026-08-02).
+
+#### Alcance de ISO 27001 — **alineado, no certificado** (T33, 2026-08-07)
+
+✅ **Cierra `CX-31` (P0), `CX-38` y `OQ-N-46`.** Lo decidió `CX-38`, que no existía cuando se abrió
+`CX-31`: **`V-53` dice que el cliente no prevé que nadie le exija el certificado** (*"nuestros
+clientes son empresas pequeñas"*). Sin comprador, certificar es un proyecto organizativo de meses
+sin comprador. Y la diferencia práctica es justo la que hacía irresoluble `CX-31`: **un estándar
+usado como guía de diseño admite excepciones documentadas; una certificación auditada, no.**
+
+> **Excepción declarada:** **A.5.3 —segregación de funciones— NO se cumple.** El equipo es una
+> persona (`CX-27`): la misma escribe el código de la caja, lo aprueba, lo despliega y opera
+> producción. Se declara por escrito aquí, que es el equivalente a una Declaración de Aplicabilidad.
+
+**Cuatro controles compensatorios, vinculantes:**
+
+| # | Control | Por qué |
+|---|---|---|
+| 1 | **La puerta de revisión de código de T25 se reescribe**: deja de significar aprobación humana y pasa a **análisis estático obligatorio (Ruff + Bandit) + lista de comprobación marcada en el PR** | La puerta sigue existiendo y sigue bloqueando; cambia **quién** la satisface. Tal como estaba escrita era incumplible |
+| 2 | 🔴 **Aprobación del cliente para cambios en módulos de dinero** (`payments/`, `cash_box/`, `ledger`) | **El único control que produce segregación real**, porque quien aprueba es otra persona. Es lo que evita que esto sea papeleo |
+| 3 | 🔴 **No se despliega desde el portátil. Nunca.** Solo desde CI, por etiqueta | **Sostiene a los otros tres.** Si el desarrollador puede desplegar desde su máquina, el registro inmutable no registra nada y el control 2 se salta sin dejar rastro. Si solo uno sobrevive a la prisa, tiene que ser éste |
+| 4 | **Acceso a producción auditado y sin permanencia** — sin acceso humano estable a la RDS; entrada de emergencia por rol de IAM, con CloudTrail y **alarma al usarlo** | Un acceso de emergencia que no avisa a nadie es un acceso normal con otro nombre |
+
+**LGPD no se ve afectada por esta decisión** — es obligatoria por ley, no por exigencia de cliente,
+y sigue íntegra con todo lo registrado abajo.
 
 > 🔴 **REQUISITO PREVIO AL DESARROLLO — instrucción explícita del usuario.**
 > **Antes de escribir el primer módulo, el desarrollador debe formarse en ISO 27001 y LGPD.**
@@ -735,8 +852,8 @@ altamente testeable*.
 | **Unitarias** | Obligatorio | El cálculo de dinero es el caso ideal: reglas aritméticas exactas |
 | **Integración** | Obligatorio | **Contra un PostgreSQL real.** RLS, transacciones y la restricción de unicidad **solo existen en Postgres** |
 | **Contrato** | Obligatorio | Justificación no habitual: **la app se distribuye por las tiendas**, así que versiones viejas siguen instaladas semanas. La API debe seguir siendo compatible con lo que está en la calle, y **ninguna otra prueba detecta romper eso** |
-| **Extremo a extremo** | Obligatorio, **acotado** | Lista corta e intocable de flujos críticos, o se pudre. Candidatos: pago offline + sincronización · cierre de caja · aprobación de venta en 4 pasos con QR. **Lista concreta pendiente** |
-| **Rendimiento** | Obligatorio, **no ejecutable aún** | **No hay objetivo declarado** (`OQ-N-44`). Una prueba que no puede fallar no es una prueba |
+| **Extremo a extremo** | Obligatorio, **acotado** | ✅ **Lista cerrada por diseño, exactamente tres** (T24): pago offline + sincronización · cierre de caja a cero pendiente · aprobación de venta en 4 pasos con QR. Tres flujos intocables valen más que veinte que nadie mira |
+| **Rendimiento** | Obligatorio, **sigue sin ser ejecutable** | **No hay objetivo declarado** (`OQ-N-44`, T34 **no respondida**). Una prueba que no puede fallar no es una prueba. Agravado por `CX-39`: sin staging, k6 solo puede correr en local |
 | **Seguridad (SAST/DAST)** | Obligatorio | Incluye escaneo de dependencias |
 
 #### "Altamente testeable" traducido a restricciones de diseño (vinculantes)
@@ -751,6 +868,44 @@ altamente testeable*.
    escenarios offline sean pruebas normales y no ejecuciones en emulador.
 
 Se cruza con la **regla 6** de §Mobile Platform Constraints (cuatro pruebas de humo móviles).
+
+### Entornos y datos de prueba (T32, 2026-08-07)
+
+Cierra `OQ-T-21`. **Coste adicional: $0** — la infraestructura se queda en el escenario A más el NAT
+de T11. No mueve `OQ-N-45`, que sigue abierta y sigue dependiendo de **`OQ-N-40` (presupuesto
+mensual, nunca declarado)**.
+
+| Entorno | Qué es |
+|---|---|
+| **Producción** | Único entorno desplegado en AWS |
+| **Local** | Docker Compose: backend + PostgreSQL + base sembrada. **Aquí corre la puerta lenta entera** |
+| ~~Staging~~ | **No existe.** Evaluado bajo demanda (~+$20/mes) y permanente compartido (~+$40–50/mes); ambos descartados |
+
+**Datos**: **generador sintético** (día 1) **+ copia anonimizada de producción** (capacidad futura).
+
+> 🔴 **`CX-39` — la puerta lenta de T25 se queda sin ambiente.** T25 hizo **E2E + rendimiento + DAST
+> bloqueantes del despliegue** y T24 nombró las herramientas; sin staging solo quedan el portátil o
+> producción, y **ZAP contra producción no es una opción**. Es la misma forma que `CX-31`: una puerta
+> incumplible tal como está escrita.
+> **Mitigación acordada dentro de la decisión**: la puerta lenta corre contra la **pila local
+> completa** — Playwright contra el Compose, Maestro sobre un *development build* apuntando a
+> `localhost`, ZAP contra el backend local. Ejecutable por una persona y sin coste.
+> ⚠️ **Lo que la mitigación NO da es un número de rendimiento válido**: sin ALB, sin NAT y sin la
+> latencia de RDS en `sa-east-1`, **k6 en un portátil no mide producción**. Sí detecta lo que de
+> verdad rompe a un equipo de una persona: **regresiones algorítmicas** — consultas N+1, índices que
+> faltan, consultas que crecen con el número de tenants.
+
+> 🔴 **Trampa de LGPD en la copia anonimizada.** Hoy **no existe producción que copiar** (greenfield):
+> el día 1 es solo generador sintético. Y una copia que conserve **importes, fechas y forma de ruta
+> es reidentificable** en un conjunto de ~2.000 clientes — eso no es anonimización sino
+> **seudonimización**, que bajo LGPD **sigue siendo dato personal** (art. 13), con las mismas
+> obligaciones que producción.
+> **Regla vinculante: jamás un `pg_dump` de producción a una máquina local.** Si se hace, la
+> transformación **se ejecuta dentro de AWS** y solo sale el resultado ya transformado.
+> **Camino recomendado que honra ambas opciones sin mover un dato personal**: extraer de producción
+> **parámetros estadísticos** (nº de filas, distribución de importes, tamaño de ruta, tasa de mora) y
+> alimentar con ellos al generador sintético. Ventaja adicional: **el generador se escala a 10× para
+> pruebas de carga**; una copia real está fijada al tamaño real.
 
 ### Coverage Targets
 
@@ -794,8 +949,16 @@ significar nada. **Tres flujos intocables valen más que veinte que nadie mira.*
 
 | Puerta | Qué corre | Tiempo | Cuándo |
 |---|---|---|---|
-| **Por cada cambio** — bloquea la **fusión** | Tipos y formato · unitarias · **integración con PostgreSQL real** · SAST + escaneo de dependencias · **compatibilidad del contrato OpenAPI** · **revisión de código aprobada** | minutos | Siempre |
-| **Antes de publicar** — bloquea el **despliegue**, no la fusión | Extremo a extremo sobre flujos críticos · rendimiento contra `OQ-N-44` · DAST | decenas de minutos | Nocturno y antes de cada versión |
+| **Por cada cambio** — bloquea la **fusión** | Tipos y formato · unitarias · **integración con PostgreSQL real** · SAST + escaneo de dependencias · **compatibilidad del contrato OpenAPI** · **~~revisión de código aprobada~~ → análisis estático (Ruff + Bandit) + lista de comprobación marcada en el PR** (T33) | minutos | Siempre |
+| **Antes de publicar** — bloquea el **despliegue**, no la fusión | Extremo a extremo sobre flujos críticos · rendimiento contra `OQ-N-44` · DAST. ⚠️ **Corre contra la pila local**, no contra staging — ver §Entornos y `CX-39` | decenas de minutos | Nocturno y antes de cada versión |
+
+> **Dos correcciones de T33 y T32 sobre lo que T25 escribió el 2026-08-01**, ambas porque la puerta
+> era incumplible tal como estaba: la **revisión humana** no existe con un equipo de una persona
+> (`CX-31`), y la **puerta lenta no tenía dónde correr** (`CX-39`). En ambos casos la puerta se
+> conserva y bloquea igual; lo que cambia es quién la satisface y dónde se ejecuta.
+> 🔴 **Añadido por T33: no se despliega desde el portátil, nunca.** Solo desde CI, por etiqueta.
+> Es el control que sostiene al registro inmutable de despliegues y a la aprobación del cliente para
+> los módulos de dinero.
 
 **Motivo de la separación**: extremo a extremo y rendimiento **fallan a veces sin que nadie haya
 roto nada** — un tiempo de espera agotado, un navegador lento, un contenedor que arrancó tarde. Si
@@ -1295,44 +1458,58 @@ locals {
 
 ## Open Questions (Technical)
 
-Detalle completo en `open-questions.md` §7. De 26 preguntas `OQ-T`: **12 cerradas · 4 parciales ·
-10 abiertas**.
+Detalle completo en `open-questions.md` §7. De 26 preguntas `OQ-T`: **21 cerradas · 2 parciales ·
+3 abiertas → 84,6 %**.
+
+**Las tres abiertas están bloqueadas fuera del rol técnico** — ninguna se puede cerrar preguntando
+al líder técnico, y por eso se excluyeron a propósito de la ampliación #2:
+
+| ID | Título | Prio | Bloqueada en |
+|---|---|---|---|
+| `OQ-T-15` | Proveedor de LLM para el asistente | **P0** | `CX-30` — si la IA está en el plan básico de la suscripción, vuelve a la v1. **Requiere confirmación del cliente** |
+| `OQ-T-25` | Acceso a datos o exportaciones de TryController | P1 | `CX-20` — el proveedor no ofrece exportación. Es migración de datos, no código heredado |
+| `OQ-T-26` | Pasarela de cobro de la suscripción del software | P1 | Cliente. `D-03` deja el módulo de facturación SaaS fuera de la v1 |
+
+**Las dos parciales:**
+
+| ID | Qué falta | Prio |
+|---|---|---|
+| `OQ-T-13` | Solo la **política de retención** de las fotos (el número de años). Entrega y almacenamiento cerrados en T11 | P1 |
+| `OQ-T-19` | Solo el **número de cobertura** (T23, fuera de alcance por profundidad). Tipos, herramientas, escalonamiento y flujos E2E cerrados | P2 |
+
+**Abiertas durante las entrevistas técnicas, fuera del bloque `OQ-T`:**
 
 | ID | Título | Prio | Estado |
 |---|---|---|---|
-| `OQ-T-3` | Tamaño y experiencia del equipo | **P0** | ⬜ Abierta |
-| `OQ-T-22` | **Ejemplos de código canónicos** | **P0** ⬆ | ⬜ Abierta |
-| `OQ-T-13` | Retención y entrega de las fotos (CDN vs URL firmada) | P1 | 🟡 Parcial |
-| `OQ-T-14` | Proveedor de push y de correo transaccional | P1 | ⬜ Abierta |
-| `OQ-T-16` | Monorepo vs multi-repo; convención de capas | P1 | ⬜ Abierta |
-| `OQ-T-17` | Declaración general de cifrado (BD, backups, TLS) | P1 | 🟡 Parcial |
-| `OQ-T-19` | Objetivo de cobertura | P1 | 🟡 Parcial |
-| `OQ-T-20` | Herramienta de prueba por tipo | P1 | 🟡 Parcial |
-| `OQ-T-21` | Entornos y datos de prueba anonimizados | P1 | ⬜ Abierta |
-| `OQ-T-23` | Infraestructura como código | P1 | ⬜ Abierta |
-| `OQ-T-24` | **Idioma del código y nombres de dominio** | P1 | ⬜ Abierta |
-| `OQ-T-25` | Acceso a datos de TryController | P1 | ⬜ Bloqueada en el cliente |
-| `OQ-T-26` | Pasarela de cobro de la suscripción | P1 | ⬜ Bloqueada en el cliente |
-| `OQ-T-15` | Proveedor de LLM para el asistente | P2 ⬇ | ⬜ Fuera de v1 por `D-03` |
+| `CX-27` | El alcance comprometido no cabe en un equipo de una persona | **P0** | ⬜ Abierta — reabre `D-03` |
+| `CX-30` | La IA entra en el plan básico, contra `D-03` y contra `C-108` | **P0** | ⬜ Abierta — requiere al cliente |
+| `CX-26` | *"Vincular el usuario a la IP del celular"* no es implementable | **P0** | ✅ Traducción confirmada por `V-36`; falta el **flujo de reautorización** |
+| `OQ-F-99` | Qué pasa con las operaciones sin sincronizar de un dispositivo revocado | **P0** | ⬜ Abierta — decisión de negocio |
+| `CX-39` | La puerta lenta de T25 no tiene ambiente donde ejecutarse | P1 | 🟡 Mitigada en local por T32; **el rendimiento sigue sin resolver** |
+| `OQ-N-44` | **Objetivo de rendimiento contra el que medir** | P1 | ⬜ **Abierta — T34 quedó sin responder** al cerrar la sesión del 2026-08-07 |
+| `OQ-N-45` | ¿Se acepta la subida de ~50 % del coste por la red privada de T11? | P1 | ⬜ Abierta — depende de `OQ-N-40` |
+| `CX-29` · `CX-37` | Telegram para reportes; tres canales de mensajería incompatibles | P1 | ⬜ Abiertas — el puerto `messaging` absorbe el cambio, la planificación no |
 
-**Abiertas durante esta entrevista, fuera del bloque `OQ-T`:**
-
-| ID | Título | Prio |
-|---|---|---|
-| `CX-26` | *"Vincular el usuario a la IP del celular"* no es implementable | **P0** |
-| `OQ-F-99` | Qué pasa con las operaciones sin sincronizar de un dispositivo revocado | **P0** |
-| `OQ-N-44` | Objetivo de rendimiento contra el que medir | P1 |
+⚠️ **`OQ-T-24` deja cuatro términos de glosario sin confirmar** —`sale`, `client` vs `customer`,
+`partner`, y si `collector` cubre "cobrador" y "gestor"— **que deben cerrarse antes de escribir
+código**. Estaban en la lista de bonus de la ampliación #2 y no se alcanzaron.
 
 ---
 
 ## Riesgos técnicos abiertos
 
-- ⚠️ **SQLite cifrada en el dispositivo** — tensión sin resolver entre la **regla 2** de
-  §Mobile Platform Constraints (preferir librerías del SDK de Expo ⇒ `expo-sqlite`) y el cifrado en
-  reposo obligatorio (⇒ `op-sqlite` + SQLCipher). **Verificar al montar el proyecto. No dar por
-  hecho que `expo-sqlite` cifra.**
-- ⚠️ **Librería de gráficas sin declarar** — T9 fuera de alcance, así que tampoco pudo prohibirse
-  ninguna. El tablero de C-83 necesita una. Decidir al montar el proyecto.
+- ~~SQLite cifrada en el dispositivo~~ — ✅ **CERRADO el 2026-08-07 (T30)**: `op-sqlite` +
+  SQLCipher. Queda **una verificación de arranque**, no un riesgo abierto: confirmar el config
+  plugin oficial y las condiciones de licencia de SQLCipher antes de la primera migración.
+- ~~Librería de gráficas sin declarar~~ — ✅ **CERRADO el 2026-08-07 (T9-b)**: **Recharts**. Queda
+  fijar una versión compatible con React 19.
+- ⚠️ **El rendimiento no tiene objetivo ni ambiente** — `OQ-N-44` sigue abierta (T34 no respondida) y
+  `CX-39` deja a k6 corriendo solo en local, donde el número **no es comparable con producción**.
+  Concretamente, el riesgo que nadie está midiendo es el **crecimiento del ledger**: es *append-only*
+  y el saldo se define como la **suma de los movimientos**, así que a ~1.200 asientos/día son
+  ~1,1 millones en 3 años y el cálculo se degrada de forma continua e invisible. T14 ya previó la
+  mitigación —**tabla de resumen precalculada** refrescada por una tarea periódica de Procrastinate—
+  pero **nadie ha fijado el umbral que obligaría a activarla**.
 - ⚠️ **Calidad de ejecución de la cola de comandos** — el riesgo ya no es qué motor elegir sino que
   ese código se escribe en casa. Los cinco escenarios de prueba son donde se romperá si se hace con
   prisa.
